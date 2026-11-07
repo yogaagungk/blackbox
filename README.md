@@ -4,7 +4,8 @@ ORBIT Suite secrets CLI: seals `.env` files with [age](https://age-encryption.or
 so the encrypted `.env.lock` can be committed, and unseals them locally with a
 private key that never leaves `~/.blackbox/keys.txt`.
 
-Status: B1 (`init`, `seal`, `unseal`). GitHub and lander sync are B2/B3.
+Status: B1 (`init`, `seal`, `unseal`) and B2 (`sync --target github`).
+Lander sync is B3.
 
 ## Build
 
@@ -27,6 +28,12 @@ blackbox seal
 
 # Restore .env from .env.lock (refuses to overwrite unless --force)
 blackbox unseal
+
+# List the repository secrets that would be set (no network, names only)
+blackbox sync --target github --repo owner/name
+
+# Upload them (sealed box, token from GITHUB_TOKEN or a hidden prompt)
+GITHUB_TOKEN=... blackbox sync --target github --repo owner/name --apply
 ```
 
 Flags: `--config <path>`, `--keys <path>`, `seal --in/--out/--dry-run`,
@@ -48,6 +55,12 @@ to adding it in non-interactive runs).
 - Command output only names files and byte counts; plaintext and key material
   are never printed or logged.
 - All writes go through a temp file plus atomic rename; unseal writes `0600`.
+- `sync` reads `.env` into memory, uses libsodium `crypto_box_seal`
+  (`nacl/box.SealAnonymous`) with the repository public key, and never logs
+  values: the default dry run prints key names only. Blank keys, invalid key
+  names and non-`A-Z_` names are skipped with a name-only warning.
+- The GitHub token comes from `GITHUB_TOKEN` or a hidden stdin prompt, never a
+  flag, and is never written to disk.
 
 ## Layout
 

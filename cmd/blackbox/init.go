@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,17 +27,39 @@ func (a *app) initCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if !force {
-				if _, err := os.Stat(a.configPath); err == nil {
-					return fmt.Errorf("%s already exists; use --force to overwrite", a.configPath)
-				} else if !os.IsNotExist(err) {
-					return fmt.Errorf("inspect config: %w", err)
-				}
-			}
-
-			recipient, err := service.InitKeys(keysPath, force)
+			configExists, err := fileExists(a.configPath)
 			if err != nil {
 				return err
+			}
+			if configExists && !force {
+				return fmt.Errorf("%s already exists; use --force to overwrite", a.configPath)
+			}
+
+			keysExist, err := fileExists(keysPath)
+			if err != nil {
+				return err
+			}
+
+			var recipient, notice, backup string
+			reused := false
+			switch {
+			case keysExist && !force:
+				// A second repo must reuse the machine identity, never rotate it.
+				recipient, err = service.LoadRecipient(keysPath)
+				reused = true
+			case keysExist && force:
+				backup, err = service.BackupKey(keysPath)
+				if err == nil {
+					recipient, notice, err = service.InitKeys(keysPath, true)
+				}
+			default:
+				recipient, notice, err = service.InitKeys(keysPath, false)
+			}
+			if err != nil {
+				return err
+			}
+			if notice != "" {
+				_, _ = fmt.Fprintf(a.stdout, "  warning: %s\n", notice)
 			}
 
 			cfg := domain.Config{
@@ -53,12 +76,25 @@ func (a *app) initCmd() *cobra.Command {
 					return fmt.Errorf("create config directory: %w", err)
 				}
 			}
-			if err := os.WriteFile(a.configPath, data, 0o600); err != nil {
+			if err := service.WriteAtomic(a.configPath, data, 0o600); err != nil {
+				// Keep a failed init from destroying the previous identity.
+				if backup != "" {
+					_ = service.RestoreKey(backup, keysPath)
+				} else if !keysExist {
+					_ = os.Remove(keysPath)
+				}
 				return fmt.Errorf("write config: %w", err)
 			}
 
-			_, _ = fmt.Fprintf(a.stdout, "Initialized blackbox\n  keys: %s (0600)\n  recipient: %s\n  config: %s\n",
-				keysPath, recipient, a.configPath)
+			header := "Initialized blackbox"
+			if reused {
+				header = "Initialized blackbox (reusing existing identity)"
+			}
+			_, _ = fmt.Fprintf(a.stdout, "%s\n  keys: %s (0600)\n  recipient: %s\n  config: %s\n",
+				header, keysPath, recipient, a.configPath)
+			if backup != "" {
+				_, _ = fmt.Fprintf(a.stdout, "  previous key backup: %s (0600)\n", backup)
+			}
 
 			if noGitignore || !a.confirmGitignore(cmd) {
 				return nil
@@ -76,9 +112,21 @@ func (a *app) initCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite an existing identity and config")
+	cmd.Flags().BoolVar(&force, "force", false, "rotate the identity (with backup) and overwrite the config")
 	cmd.Flags().BoolVar(&noGitignore, "no-gitignore", false, "do not modify .gitignore")
 	return cmd
+}
+
+func fileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	switch {
+	case err == nil:
+		return true, nil
+	case errors.Is(err, os.ErrNotExist):
+		return false, nil
+	default:
+		return false, fmt.Errorf("inspect %s: %w", path, err)
+	}
 }
 
 // confirmGitignore prompts only on a terminal; non-interactive runs default

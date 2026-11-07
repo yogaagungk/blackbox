@@ -14,9 +14,9 @@ var ErrKeysExist = errors.New("identity file already exists")
 // ErrDestinationExists means unseal would overwrite an existing file.
 var ErrDestinationExists = errors.New("destination file already exists")
 
-// writeAtomic writes data through a temporary file in the destination
+// WriteAtomic writes data through a temporary file in the destination
 // directory and renames it into place.
-func writeAtomic(path string, data []byte, mode fs.FileMode) error {
+func WriteAtomic(path string, data []byte, mode fs.FileMode) error {
 	dir := filepath.Dir(path)
 	temp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".tmp-*")
 	if err != nil {

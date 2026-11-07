@@ -37,7 +37,7 @@ func EnsureGitignore(path string, entries []string) ([]string, error) {
 		content += "\n"
 	}
 	content += strings.Join(added, "\n") + "\n"
-	if err := writeAtomic(path, []byte(content), 0o644); err != nil {
+	if err := WriteAtomic(path, []byte(content), 0o644); err != nil {
 		return nil, fmt.Errorf("update .gitignore: %w", err)
 	}
 	return added, nil

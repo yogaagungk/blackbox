@@ -13,7 +13,7 @@ func sealFixture(t *testing.T) (dir, keysPath, recipient, envPath, lockPath stri
 	dir = t.TempDir()
 	keysPath = filepath.Join(dir, "keys.txt")
 	var err error
-	recipient, err = InitKeys(keysPath, false)
+	recipient, _, err = InitKeys(keysPath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestSealUnsealRoundTrip(t *testing.T) {
 	}
 
 	otherKeys := filepath.Join(dir, "other-keys.txt")
-	if _, err := InitKeys(otherKeys, false); err != nil {
+	if _, _, err := InitKeys(otherKeys, false); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := UnsealFile(lockPath, filepath.Join(dir, "wrong.env"), otherKeys, false, false); err == nil {

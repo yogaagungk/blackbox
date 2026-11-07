@@ -29,7 +29,7 @@ func (a *app) sealCmd() *cobra.Command {
 			if dryRun {
 				verb = "would seal"
 			}
-			_, _ = fmt.Fprintf(a.stdout, "%s %s -> %s (%d bytes)\n", verb, inPath, outPath, size)
+			_, _ = fmt.Fprintf(a.stdout, "%s %s -> %s (%d bytes; recipient %s)\n", verb, inPath, outPath, size, shortRecipient(cfg.Recipient))
 			return nil
 		},
 	}
@@ -38,4 +38,13 @@ func (a *app) sealCmd() *cobra.Command {
 	cmd.Flags().StringVar(&outPath, "out", ".env.lock", "encrypted output file")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate inputs without writing")
 	return cmd
+}
+
+// shortRecipient shows enough of the public key to spot a swapped recipient
+// without printing it in full.
+func shortRecipient(recipient string) string {
+	if len(recipient) <= 18 {
+		return recipient
+	}
+	return recipient[:12] + "..." + recipient[len(recipient)-6:]
 }

@@ -36,8 +36,12 @@ to adding it in non-interactive runs).
 
 ## Security model
 
-- The age identity is written with mode `0600`; `unseal` refuses to use a key
-  that is readable by group or others.
+- The age identity is written with mode `0600`; `unseal` accepts only `0600`
+  or `0400` keys and rejects anything readable or executable by group/others.
+- The recipient comes from the repo-tracked `.blackbox.yaml`; `seal` prints
+  its first/last characters so a swapped recipient is visible before commit.
+- `init` reuses an existing machine identity in a second repo; `--force`
+  rotates it and leaves a timestamped `keys.txt.bak-*` backup.
 - `.blackbox.yaml` contains only the public recipient and is safe to commit;
   `.env.lock` is ciphertext and is meant to be committed.
 - `.env` is added to `.gitignore` by `init`.

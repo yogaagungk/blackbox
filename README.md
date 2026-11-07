@@ -89,6 +89,8 @@ Initialized blackbox
   .gitignore: added .env
 ```
 
+In a second repository with an existing machine identity, the header is `Initialized blackbox (reusing existing identity)`: the existing key is reused, not rotated.
+
 Seal, commit, restore:
 
 ```sh
@@ -99,7 +101,7 @@ blackbox unseal --force
 Example output (example data):
 
 ```text
-sealed .env -> .env.lock (212 bytes; recipient age1ql3z7k9q8m...8s4w2)
+sealed .env -> .env.lock (212 bytes; recipient age1ql3z7k9q...q8s4w2)
 unsealed .env.lock -> .env (198 bytes)
 ```
 

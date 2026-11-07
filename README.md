@@ -101,7 +101,7 @@ blackbox unseal --force
 Example output (example data):
 
 ```text
-sealed .env -> .env.lock (212 bytes; recipient age1ql3z7k9q...q8s4w2)
+sealed .env -> .env.lock (212 bytes; recipient age1ql3z7k9q...k8s4w2)
 unsealed .env.lock -> .env (198 bytes)
 ```
 
